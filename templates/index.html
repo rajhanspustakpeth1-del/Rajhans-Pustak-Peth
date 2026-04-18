@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-white text-center py-5" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+    <div class="container">
+        <h1 class="display-4 fw-bold">📚 मराठी पुस्तकांचे दालन</h1>
+        <p class="lead">आपल्या आवडत्या मराठी पुस्तकांचा शोध घ्या - Discover your favorite Marathi books</p>
+        <a href="{{ url_for('books') }}" class="btn btn-light btn-lg mt-3">
+            <i class="fas fa-book"></i> पुस्तके बघा
+        </a>
+    </div>
+</section>
+
+<!-- Categories / Publishers Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-4">प्रकाशक <i class="fas fa-building"></i></h2>
+        <div class="row g-3 justify-content-center">
+            {% for pub in publishers if pub[0] %}
+            <div class="col-md-2 col-4">
+                <a href="{{ url_for('publisher_books', publisher_name=pub[0]) }}" class="text-decoration-none">
+                    <div class="card text-center h-100 shadow-sm">
+                        <div class="card-body">
+                            <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                            <p class="card-text small">{{ pub[0][:30] }}{% if pub[0]|length > 30 %}...{% endif %}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Books -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-4">✨ नवीन आणि लोकप्रिय पुस्तके</h2>
+        <div class="row g-4">
+            {% for book in featured_books %}
+            <div class="col-md-3 col-6">
+                <div class="card book-card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-book fa-3x text-primary mb-3"></i>
+                        <h6 class="card-title">{{ book.title[:40] }}{% if book.title|length > 40 %}...{% endif %}</h6>
+                        <p class="card-text text-muted small">{{ book.author[:30] if book.author else 'लेखक अज्ञात' }}</p>
+                        <p class="fw-bold text-success">₹{{ book.rate }}/-</p>
+                        {% if book.cl_bal > 0 %}
+                        <button class="btn btn-sm btn-primary add-to-cart" data-book-id="{{ book.id }}" data-book-title="{{ book.title }}">
+                            <i class="fas fa-cart-plus"></i> खरेदी करा
+                        </button>
+                        {% else %}
+                        <button class="btn btn-sm btn-secondary" disabled>स्टॉक संपला</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-4">
+            <a href="{{ url_for('books') }}" class="btn btn-outline-primary">सर्व पुस्तके बघा →</a>
+        </div>
+    </div>
+</section>
+
+<!-- WhatsApp Order Section -->
+<section class="py-5 bg-light">
+    <div class="container text-center">
+        <h2>📱 WhatsApp वर ऑर्डर करा</h2>
+        <p class="mb-4">तुम्हाला हवे असलेले पुस्तक कार्ट मध्ये घाला आणि WhatsApp वर ऑर्डर पाठवा</p>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <i class="fab fa-whatsapp fa-4x text-success mb-3"></i>
+                        <h5>ऑर्डर कशी करायची?</h5>
+                        <ol class="text-start">
+                            <li>पुस्तके कार्ट मध्ये घाला</li>
+                            <li>तुमची माहिती भरा</li>
+                            <li>ऑर्डर कन्फर्म करा</li>
+                            <li>WhatsApp वर ऑर्डर पाठवा</li>
+                        </ol>
+                        <a href="{{ url_for('cart') }}" class="btn btn-success">
+                            <i class="fab fa-whatsapp"></i> ऑर्डर करण्यासाठी कार्ट मध्ये जा
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
