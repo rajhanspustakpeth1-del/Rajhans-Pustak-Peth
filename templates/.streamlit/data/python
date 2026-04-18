@@ -1,0 +1,12 @@
+# Create virtual environment
+python -m venv rajhans_env
+
+# Activate virtual environment
+# On Windows:
+rajhans_env\Scripts\activate
+# On Mac/Linux:
+source rajhans_env/bin/activate
+
+pip install -r requirements.txt
+
+streamlit run app.py
