@@ -1,9 +1,6 @@
 import streamlit as st
-import pandas as pd
 from datetime import datetime
 import urllib.parse
-import json
-import os
 
 # Page configuration
 st.set_page_config(
@@ -106,6 +103,17 @@ st.markdown("""
         margin-top: 2rem;
         text-align: center;
     }
+    
+    /* Button styling */
+    .stButton button {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    /* Success message */
+    .stAlert {
+        border-radius: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -129,48 +137,38 @@ SHOP_TIMINGS = """
 # Initialize session state
 if 'cart' not in st.session_state:
     st.session_state.cart = {}
-if 'books_data' not in st.session_state:
-    st.session_state.books_data = []
-if 'filtered_books' not in st.session_state:
-    st.session_state.filtered_books = []
+if 'page' not in st.session_state:
+    st.session_state.page = "books"
 
 
 def load_books_data():
-    """Load books from embedded data (avoiding external file dependencies)"""
+    """Load books from embedded data"""
     books = [
-        {"id": 1, "publisher": "A Ltd", "title": "Sinhayan - Pach Tapanche Parv", "author": "Dr.Pratapsinh G.Jadhav", "price": 800, "stock": 1},
-        {"id": 2, "publisher": "A Ltd", "title": "Mahanoranchi Kavita", "author": "Deshmukh Shrikant", "price": 600, "stock": 3},
-        {"id": 3, "publisher": "A Ltd", "title": "Rahasya Marathi Sanskaran", "author": "Anu.Dr. Rama Marathe", "price": 499, "stock": 0},
-        {"id": 4, "publisher": "A Ltd", "title": "Secrets of Debt Free Life", "author": "Aditya Palav", "price": 499, "stock": 1},
-        {"id": 5, "publisher": "A Ltd", "title": "Raghuvanshatil Upamasaundarya", "author": "Vidyadhar Bhide", "price": 400, "stock": 2},
-        {"id": 6, "publisher": "A Ltd", "title": "Loksatta Agralekh", "author": "Girish Kuber", "price": 395, "stock": 0},
-        {"id": 7, "publisher": "A Ltd", "title": "Spardha Pariksha Books", "author": "Sampadit", "price": 393, "stock": 0},
-        {"id": 8, "publisher": "A Ltd", "title": "AISPAIS GAPPA NEELAMTAINSHEE", "author": "KARUNA GOKHALE", "price": 360, "stock": 0},
-        {"id": 9, "publisher": "Aarhan Booksmiths", "title": "Pakshikosh", "author": "Maruti Chitampalli", "price": 1800, "stock": 0},
-        {"id": 10, "publisher": "Aarhan Booksmiths", "title": "The Story Of Yoga", "author": "Alister Shearer", "price": 799, "stock": 0},
-        {"id": 11, "publisher": "Continental Prakashan", "title": "Yugandhar", "author": "Shivaji Sawant", "price": 850, "stock": 0},
-        {"id": 12, "publisher": "Mehta Publishing House", "title": "CHHAVA", "author": "Shivaji Savant", "price": 750, "stock": 4},
-        {"id": 13, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Subodh Baybal", "author": "Dibrito Phransis", "price": 1500, "stock": 1},
-        {"id": 14, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Lok Majhe Sangati", "author": "Sharad Pawar", "price": 650, "stock": 65},
-        {"id": 15, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Shodh (Rajhans)", "author": "Murlidhar Khairnar", "price": 675, "stock": 776},
-        {"id": 16, "publisher": "Granthali", "title": "Mi Bahurupi", "author": "Ashok Saraf/Meena Karnik", "price": 600, "stock": 47},
-        {"id": 17, "publisher": "Manjul Publishing House", "title": "Atomic Habits", "author": "James Clear", "price": 499, "stock": 39},
-        {"id": 18, "publisher": "Mehta Publishing House", "title": "Shantaram", "author": "Aparna Velanakar", "price": 995, "stock": 23},
-        {"id": 19, "publisher": "Mehta Publishing House", "title": "Mrutyunjay", "author": "Shivaji Sawant", "price": 700, "stock": 68},
-        {"id": 20, "publisher": "I B D", "title": "Atomic Habits", "author": "James Clear", "price": 899, "stock": 45},
-        {"id": 21, "publisher": "I B D", "title": "Thinking Fast And Slow", "author": "Daniel Kahneman", "price": 799, "stock": 13},
-        {"id": 22, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Mahanayaka", "author": "Vishwas Patil", "price": 650, "stock": 79},
-        {"id": 23, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Bokya Satabande", "author": "Dilip Prabhavalakar", "price": 150, "stock": 2019},
-        {"id": 24, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Manobhave Deshdarshan", "author": "Shashidhar Bhave", "price": 125, "stock": 23},
-        {"id": 25, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Bharatachi Kulkatha", "author": "Madhukar Keshav Dhavalikar", "price": 450, "stock": 83},
-        {"id": 26, "publisher": "RajhansPrakashan Pvt Ltd.", "title": "Nivadak Laxmikant Tamboli", "author": "Samp.Ranadhir Shinde", "price": 799, "stock": 5},
-        {"id": 27, "publisher": "Deshmukh Ani company", "title": "Yugapravartak Chhatrapati", "author": "Narhar Kurundkar", "price": 600, "stock": 116},
-        {"id": 28, "publisher": "Deshmukh Ani company", "title": "Dhar Ani Kath", "author": "Narhar Kurundkar", "price": 550, "stock": 64},
-        {"id": 29, "publisher": "Deshmukh Ani company", "title": "Rangshala", "author": "Narhar Kurundkar", "price": 520, "stock": 57},
-        {"id": 30, "publisher": "Deshmukh Ani company", "title": "Yugant", "author": "Irawati Karve", "price": 400, "stock": 400},
-        {"id": 31, "publisher": "Mouj Prakashan Gruh", "title": "Mouj Diwali Ank", "author": "Sampadit", "price": 400, "stock": 1757},
-        {"id": 32, "publisher": "Sakal Papers Pvt Ltd", "title": "Ayurvediya Garbha Sanskar", "author": "Dr.Balaji Tambe", "price": 990, "stock": 27},
-        {"id": 33, "publisher": "Sakal Papers Pvt Ltd", "title": "Shyamchi Aai", "author": "Sane Guruji", "price": 180, "stock": 2},
+        {"id": 1, "publisher": "राजहंस प्रकाशन", "title": "लोक माझे संगती", "author": "शरद पवार", "price": 650, "stock": 65},
+        {"id": 2, "publisher": "राजहंस प्रकाशन", "title": "शोध", "author": "मुरलीधर खैरनार", "price": 675, "stock": 776},
+        {"id": 3, "publisher": "राजहंस प्रकाशन", "title": "महानायक", "author": "विश्वास पाटील", "price": 650, "stock": 79},
+        {"id": 4, "publisher": "राजहंस प्रकाशन", "title": "बोक्या सातबांडे", "author": "दिलीप प्रभावळकर", "price": 150, "stock": 2019},
+        {"id": 5, "publisher": "राजहंस प्रकाशन", "title": "सुबोध बायबल", "author": "डिब्रिटो फ्रान्सिस", "price": 1500, "stock": 1},
+        {"id": 6, "publisher": "मेहता पब्लिशिंग हाऊस", "title": "छावा", "author": "शिवाजी सावंत", "price": 750, "stock": 4},
+        {"id": 7, "publisher": "मेहता पब्लिशिंग हाऊस", "title": "शांताराम", "author": "अपर्णा वेलणकर", "price": 995, "stock": 23},
+        {"id": 8, "publisher": "मेहता पब्लिशिंग हाऊस", "title": "मृत्युंजय", "author": "शिवाजी सावंत", "price": 700, "stock": 68},
+        {"id": 9, "publisher": "कॉन्टिनेंटल प्रकाशन", "title": "युगंधर", "author": "शिवाजी सावंत", "price": 850, "stock": 0},
+        {"id": 10, "publisher": "ग्रंथाली", "title": "मी बहुरूपी", "author": "अशोक सराफ", "price": 600, "stock": 47},
+        {"id": 11, "publisher": "मंजुळ पब्लिशिंग", "title": "अ‍ॅटॉमिक हॅबिट्स", "author": "जेम्स क्लियर", "price": 499, "stock": 39},
+        {"id": 12, "publisher": "आय बी डी", "title": "अ‍ॅटॉमिक हॅबिट्स", "author": "जेम्स क्लियर", "price": 899, "stock": 45},
+        {"id": 13, "publisher": "आय बी डी", "title": "थिंकिंग फास्ट अँड स्लो", "author": "डॅनियेल काह्नेमन", "price": 799, "stock": 13},
+        {"id": 14, "publisher": "देशमुख अँड कंपनी", "title": "युगप्रवर्तक छत्रपती", "author": "नरहर कुरुंदकर", "price": 600, "stock": 116},
+        {"id": 15, "publisher": "देशमुख अँड कंपनी", "title": "युगांत", "author": "इरावती कर्वे", "price": 400, "stock": 400},
+        {"id": 16, "publisher": "मौज प्रकाशन गृह", "title": "मौज दिवाळी अंक", "author": "संपादित", "price": 400, "stock": 1757},
+        {"id": 17, "publisher": "सकाळ पेपर्स", "title": "आयुर्वेदीय गर्भसंस्कार", "author": "डॉ. बाळाजी तांबे", "price": 990, "stock": 27},
+        {"id": 18, "publisher": "सकाळ पेपर्स", "title": "श्यामची आई", "author": "साने गुरुजी", "price": 180, "stock": 2},
+        {"id": 19, "publisher": "ए लि.", "title": "सिंहयान", "author": "डॉ. प्रतापसिंह जाधव", "price": 800, "stock": 1},
+        {"id": 20, "publisher": "ए लि.", "title": "महारौरंची कविता", "author": "देशमुख श्रीकांत", "price": 600, "stock": 3},
+        {"id": 21, "publisher": "ए लि.", "title": "रहस्य मराठी संस्करण", "author": "अनु. डॉ. रामा मराठे", "price": 499, "stock": 0},
+        {"id": 22, "publisher": "आरहान बुकस्मिथ्स", "title": "पक्षिकोश", "author": "मारुती चितमपल्ली", "price": 1800, "stock": 0},
+        {"id": 23, "publisher": "राजहंस प्रकाशन", "title": "भारताची कुळकथा", "author": "मधुकर केशव धवलीकर", "price": 450, "stock": 83},
+        {"id": 24, "publisher": "राजहंस प्रकाशन", "title": "मनोभावे देशदर्शन", "author": "शशिधर भावे", "price": 125, "stock": 23},
+        {"id": 25, "publisher": "राजहंस प्रकाशन", "title": "बोक्या सातबांडे भाग २", "author": "दिलीप प्रभावळकर", "price": 140, "stock": 10},
     ]
     return books
 
@@ -183,32 +181,32 @@ def get_whatsapp_link(phone_number, message):
 
 def generate_order_message(cart_items, customer_name, customer_phone, total_amount):
     """Generate WhatsApp order message"""
-    message = f"""*📚 NEW BOOK ORDER - RAJHANS BOOK STORE*
+    message = f"""*📚 नवीन ऑर्डर - राजहंस पुस्तक पेठ*
 
-*Customer Details:*
-👤 Name: {customer_name}
-📞 Phone: {customer_phone}
+*ग्राहक माहिती:*
+👤 नाव: {customer_name}
+📞 फोन: {customer_phone}
 
-*🛒 Order Details:*
+*🛒 ऑर्डर तपशील:*
 """
     for item in cart_items:
-        message += f"\n• *{item['title']}* \n  Qty: {item['quantity']} | ₹{item['price']}/-"
+        message += f"\n• *{item['title']}* \n  प्रमाण: {item['quantity']} | ₹{item['price']}/-"
     
-    message += f"\n\n*💰 Total Amount:* ₹{total_amount}/-"
-    message += f"\n\n*📍 Store:* {SHOP_NAME}"
-    message += f"\n*📅 Date:* {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-    message += "\n\n*Please confirm availability and share payment details.*"
+    message += f"\n\n*💰 एकूण रक्कम:* ₹{total_amount}/-"
+    message += f"\n\n*📍 दुकान:* {SHOP_NAME}"
+    message += f"\n*📅 दिनांक:* {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    message += "\n\n*कृपया उपलब्धता आणि पेमेंट तपशील पाठवा.*"
     message += "\n\n🙏 धन्यवाद!"
     
     return message
 
 
 def show_shop_header():
-    """Display shop header with logo and info"""
+    """Display shop header"""
     st.markdown(f"""
     <div class="shop-header">
         <h1>📚 {SHOP_NAME}</h1>
-        <p style="font-size: 1.2rem;">मराठी पुस्तकांचे विश्व - 40+ वर्षांचा वारसा</p>
+        <p style="font-size: 1.2rem;">मराठी पुस्तकांचे विश्व - ४०+ वर्षांचा वारसा</p>
         <a href="https://wa.me/{WHATSAPP_NUMBER}" class="whatsapp-btn" target="_blank">
             💬 WhatsApp वर संपर्क साधा
         </a>
@@ -222,7 +220,6 @@ def show_shop_info():
         st.markdown("---")
         st.markdown("## 🏪 शॉप माहिती")
         
-        # Address
         st.markdown(f"""
         <div class="address-card">
             <h4>📍 पत्ता</h4>
@@ -230,7 +227,6 @@ def show_shop_info():
         </div>
         """, unsafe_allow_html=True)
         
-        # Timings
         st.markdown(f"""
         <div class="timing-card">
             <h4>⏰ वेळ</h4>
@@ -238,7 +234,6 @@ def show_shop_info():
         </div>
         """, unsafe_allow_html=True)
         
-        # Contact
         st.markdown(f"""
         <div style="text-align: center; margin-top: 1rem;">
             <a href="tel:{WHATSAPP_NUMBER}" style="text-decoration: none;">
@@ -256,11 +251,9 @@ def show_shop_info():
         search_term = st.text_input("शोधा (Title / Author)", placeholder="पुस्तकाचे नाव किंवा लेखक...", key="search_input")
         
         # Publisher Filter
-        if st.session_state.books_data:
-            publishers = sorted(list(set([b['publisher'] for b in st.session_state.books_data])))
-            selected_publisher = st.selectbox("प्रकाशक निवडा", ["सर्व"] + publishers, key="publisher_select")
-        else:
-            selected_publisher = "सर्व"
+        books_data = load_books_data()
+        publishers = sorted(list(set([b['publisher'] for b in books_data])))
+        selected_publisher = st.selectbox("प्रकाशक निवडा", ["सर्व"] + publishers, key="publisher_select")
         
         # Price Filter
         st.markdown("### 💰 किंमत श्रेणी")
@@ -310,8 +303,6 @@ def display_books(books, search_term="", selected_publisher="सर्व", pric
     if show_only_instock:
         filtered = [b for b in filtered if b['stock'] > 0]
     
-    st.session_state.filtered_books = filtered
-    
     # Display results count
     st.markdown(f"### 📖 पुस्तके ({len(filtered)} उपलब्ध)")
     
@@ -320,7 +311,7 @@ def display_books(books, search_term="", selected_publisher="सर्व", pric
         return
     
     # Display books in grid
-    cols_per_row = 4
+    cols_per_row = 3
     for i in range(0, len(filtered), cols_per_row):
         cols = st.columns(cols_per_row)
         for j, col in enumerate(cols):
@@ -331,40 +322,42 @@ def display_books(books, search_term="", selected_publisher="सर्व", pric
                     stock_status = "✅ उपलब्ध" if book['stock'] > 0 else "❌ स्टॉक संपला"
                     stock_class = "in-stock" if book['stock'] > 0 else "out-of-stock"
                     
-                    st.markdown(f"""
-                    <div class="book-card">
-                        <div style="text-align: center;">
-                            <div style="font-size: 3rem;">📖</div>
-                            <h4 style="font-size: 1rem; margin: 0.5rem 0;">{book['title'][:45]}{'...' if len(book['title']) > 45 else ''}</h4>
-                            <p style="color: #666; font-size: 0.8rem; margin: 0;">{book.get('author', 'लेखक अज्ञात')[:35]}</p>
-                            <p style="color: #888; font-size: 0.7rem;">{book['publisher'][:30]}</p>
-                            <p class="price">₹{book['price']}/-</p>
-                            <p class="{stock_class}">{stock_status} ({book['stock']} प्रती)</p>
-                    """, unsafe_allow_html=True)
-                    
-                    if book['stock'] > 0:
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            quantity = st.number_input(f"Qty", min_value=1, max_value=min(book['stock'], 10), value=1, key=f"qty_{book['id']}", label_visibility="collapsed")
-                        with col2:
-                            if st.button(f"🛒 घाला", key=f"add_{book['id']}"):
-                                if str(book['id']) in st.session_state.cart:
-                                    st.session_state.cart[str(book['id'])]['quantity'] += quantity
-                                else:
-                                    st.session_state.cart[str(book['id'])] = {
-                                        'id': book['id'],
-                                        'title': book['title'],
-                                        'price': book['price'],
-                                        'quantity': quantity,
-                                        'author': book.get('author', ''),
-                                        'publisher': book['publisher']
-                                    }
-                                st.success(f"✅ {book['title'][:30]} कार्ट मध्ये घातले!")
-                                st.rerun()
-                    else:
-                        st.button(f"❌ स्टॉक संपला", disabled=True, key=f"disabled_{book['id']}")
-                    
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    with st.container():
+                        st.markdown(f"""
+                        <div class="book-card">
+                            <div style="text-align: center;">
+                                <div style="font-size: 3rem;">📖</div>
+                                <h4 style="font-size: 1rem; margin: 0.5rem 0;">{book['title'][:45]}{'...' if len(book['title']) > 45 else ''}</h4>
+                                <p style="color: #666; font-size: 0.8rem; margin: 0;">{book.get('author', 'लेखक अज्ञात')[:35]}</p>
+                                <p style="color: #888; font-size: 0.7rem;">{book['publisher'][:30]}</p>
+                                <p class="price">₹{book['price']}/-</p>
+                                <p class="{stock_class}">{stock_status} ({book['stock']} प्रती)</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if book['stock'] > 0:
+                            col1, col2 = st.columns([1, 1])
+                            with col1:
+                                quantity = st.number_input(f"प्रमाण", min_value=1, max_value=min(book['stock'], 10), value=1, key=f"qty_{book['id']}", label_visibility="collapsed")
+                            with col2:
+                                if st.button(f"🛒 घाला", key=f"add_{book['id']}"):
+                                    if str(book['id']) in st.session_state.cart:
+                                        st.session_state.cart[str(book['id'])]['quantity'] += quantity
+                                    else:
+                                        st.session_state.cart[str(book['id'])] = {
+                                            'id': book['id'],
+                                            'title': book['title'],
+                                            'price': book['price'],
+                                            'quantity': quantity,
+                                            'author': book.get('author', ''),
+                                            'publisher': book['publisher']
+                                        }
+                                    st.success(f"✅ {book['title'][:30]} कार्ट मध्ये घातले!")
+                                    st.rerun()
+                        else:
+                            st.button(f"❌ स्टॉक संपला", disabled=True, key=f"disabled_{book['id']}")
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def show_cart_page():
@@ -386,22 +379,8 @@ def show_cart_page():
         cart_items.append(item)
         total += item['price'] * item['quantity']
     
-    # Cart table
-    col1, col2, col3, col4, col5 = st.columns([3, 2, 1, 1, 1])
-    with col1:
-        st.markdown("**पुस्तक**")
-    with col2:
-        st.markdown("**लेखक**")
-    with col3:
-        st.markdown("**किंमत**")
-    with col4:
-        st.markdown("**प्रमाण**")
-    with col5:
-        st.markdown("**एकूण**")
-    
-    st.markdown("---")
-    
-    for item in cart_items:
+    # Cart display
+    for idx, item in enumerate(cart_items):
         col1, col2, col3, col4, col5 = st.columns([3, 2, 1, 1, 1])
         with col1:
             st.write(item['title'][:40])
@@ -419,8 +398,7 @@ def show_cart_page():
                 st.rerun()
         with col5:
             st.write(f"₹{item['price'] * item['quantity']}")
-    
-    st.markdown("---")
+        st.divider()
     
     # Total and checkout
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -449,12 +427,10 @@ def show_cart_page():
             if not customer_name or not customer_phone:
                 st.error("कृपया तुमचे नाव आणि मोबाईल नंबर भरा.")
             else:
-                # Generate order message
                 order_message = generate_order_message(cart_items, customer_name, customer_phone, total)
                 whatsapp_link = get_whatsapp_link(WHATSAPP_NUMBER, order_message)
                 
-                # Show order confirmation
-                st.success("✅ ऑर्डर तयार आहे! खालील बटणावर क्लिक करून WhatsApp वर ऑर्डर पाठवा.")
+                st.success("✅ ऑर्डर तयार आहे!")
                 
                 st.markdown(f"""
                 <div style="background-color: #d4edda; padding: 1rem; border-radius: 10px; margin: 1rem 0;">
@@ -466,10 +442,9 @@ def show_cart_page():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # WhatsApp button
                 st.markdown(f"""
                 <div style="text-align: center; margin: 1rem 0;">
-                    <a href="{whatsapp_link}" target="_blank" style="text-decoration: none;">
+                    <a href="{whatsapp_link}" target="_blank">
                         <button style="background-color: #25D366; color: white; padding: 15px 40px; font-size: 1.2rem; border: none; border-radius: 50px; cursor: pointer;">
                             💬 WhatsApp वर ऑर्डर पाठवा
                         </button>
@@ -479,7 +454,6 @@ def show_cart_page():
                 
                 st.info("👆 वरील बटणावर क्लिक केल्यानंतर WhatsApp उघडेल. कृपया ऑर्डर पाठवा.")
                 
-                # Clear cart option
                 if st.button("🔄 नवीन ऑर्डरसाठी कार्ट साफ करा", key="clear_after_order"):
                     st.session_state.cart = {}
                     st.rerun()
@@ -509,13 +483,12 @@ def show_contact_page():
     
     st.markdown("---")
     
-    # Contact buttons
     st.markdown("### 📱 आमच्याशी संपर्क साधा")
     
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown(f"""
-        <a href="tel:{WHATSAPP_NUMBER}" style="text-decoration: none;">
+        <a href="tel:{WHATSAPP_NUMBER}" target="_blank">
             <button style="width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer;">
                 📞 कॉल करा
             </button>
@@ -523,7 +496,7 @@ def show_contact_page():
         """, unsafe_allow_html=True)
     with col2:
         st.markdown(f"""
-        <a href="https://wa.me/{WHATSAPP_NUMBER}" target="_blank" style="text-decoration: none;">
+        <a href="https://wa.me/{WHATSAPP_NUMBER}" target="_blank">
             <button style="width: 100%; padding: 12px; background-color: #25D366; color: white; border: none; border-radius: 8px; cursor: pointer;">
                 💬 WhatsApp
             </button>
@@ -531,7 +504,7 @@ def show_contact_page():
         """, unsafe_allow_html=True)
     with col3:
         st.markdown(f"""
-        <a href="mailto:rajhansbooks@gmail.com" style="text-decoration: none;">
+        <a href="mailto:rajhansbooks@gmail.com" target="_blank">
             <button style="width: 100%; padding: 12px; background-color: #2196F3; color: white; border: none; border-radius: 8px; cursor: pointer;">
                 📧 ईमेल
             </button>
@@ -541,10 +514,6 @@ def show_contact_page():
 
 def main():
     """Main application"""
-    
-    # Load books data
-    if not st.session_state.books_data:
-        st.session_state.books_data = load_books_data()
     
     # Show shop header
     show_shop_header()
@@ -567,25 +536,24 @@ def main():
         if st.button("📞 संपर्क", use_container_width=True, key="nav_contact"):
             st.session_state.page = "contact"
     
-    if 'page' not in st.session_state:
-        st.session_state.page = "books"
-    
     st.markdown("---")
+    
+    # Load books
+    books_data = load_books_data()
     
     # Display appropriate page
     if st.session_state.page == "books":
-        display_books(st.session_state.books_data, search_term, selected_publisher, price_range, show_only_instock)
+        display_books(books_data, search_term, selected_publisher, price_range, show_only_instock)
     elif st.session_state.page == "cart":
         show_cart_page()
     elif st.session_state.page == "contact":
         show_contact_page()
     
     # Footer
-    st.markdown("---")
     st.markdown(f"""
     <div class="footer">
         <p><strong>© 2024 {SHOP_NAME}</strong> | मराठी पुस्तकांचे विश्व</p>
-        <p>व्यवसायिक दुकान क्रमांक: 038 | स्थापना: 1984</p>
+        <p>व्यवसायिक दुकान क्रमांक: Kothrud Pune 038 | स्थापना: 2016</p>
         <p style="font-size: 0.8rem;">सोमवारी साप्ताहिक सुट्टी</p>
     </div>
     """, unsafe_allow_html=True)
