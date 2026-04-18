@@ -1,0 +1,18 @@
+[
+    {
+        "id": 1,
+        "publisher": "A Ltd",
+        "title": "Sinhayan - Pach Tapanche Parv",
+        "author": "Dr.Pratapsinh G.Jadhav",
+        "price": 800,
+        "stock": 1
+    },
+    {
+        "id": 2,
+        "publisher": "A Ltd",
+        "title": "Mahanoranchi Kavita",
+        "author": "Deshmukh Shrikant",
+        "price": 600,
+        "stock": 3
+    }
+]
